@@ -215,7 +215,7 @@ void EnableSystemProxy(bool enable)
 	{
 		port = g_clashConfig.mixedPort;
 		if (port == 0)
-			enable = false;
+			enable = true;
 	}
 
 	if (enable)
