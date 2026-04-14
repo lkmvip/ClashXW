@@ -22,6 +22,8 @@ jobs:
       with:
         python-version: 3.7
     - run: |
+        git config --global url."https://github.com/".insteadOf git://github.com/
+        git config --global url."https://".insteadOf git://
         cd translate
         pip install -r requirements.txt
         ./gen_rc.sh
