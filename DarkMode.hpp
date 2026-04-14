@@ -81,7 +81,6 @@ struct WINDOWCOMPOSITIONATTRIBDATA
 
 extern "C" {
 	NTSYSAPI VOID NTAPI RtlGetNtVersionNumbers(_Out_ LPDWORD major, _Out_ LPDWORD minor, _Out_ LPDWORD build);
-	WINUSERAPI BOOL WINAPI SetWindowCompositionAttribute(_In_ HWND hWnd, _In_ WINDOWCOMPOSITIONATTRIBDATA*);
 
 	// 1809 17763
 	THEMEAPI_(bool) ShouldAppsUseDarkMode(); // ordinal 132
@@ -100,6 +99,18 @@ extern "C" {
 }
 
 using fnSetPreferredAppMode = PreferredAppMode (WINAPI*)(PreferredAppMode appMode); // ordinal 135, in 1903
+using fnSetWindowCompositionAttribute = BOOL (WINAPI*)(HWND, WINDOWCOMPOSITIONATTRIBDATA*);
+
+inline fnSetWindowCompositionAttribute GetSetWindowCompositionAttribute() noexcept
+{
+	static fnSetWindowCompositionAttribute fn = []() noexcept -> fnSetWindowCompositionAttribute {
+		auto hUser32 = GetModuleHandleW(L"user32.dll");
+		if (!hUser32)
+			hUser32 = LoadLibraryW(L"user32.dll");
+		return hUser32 ? reinterpret_cast<fnSetWindowCompositionAttribute>(GetProcAddress(hUser32, "SetWindowCompositionAttribute")) : nullptr;
+	}();
+	return fn;
+}
 
 bool g_darkModeSupported = false;
 DWORD g_buildNumber = 0;
@@ -126,7 +137,8 @@ void RefreshTitleBarThemeColor(HWND hWnd)
 	else
 	{
 		WINDOWCOMPOSITIONATTRIBDATA data = { WCA_USEDARKMODECOLORS, &dark, sizeof(dark) };
-		SetWindowCompositionAttribute(hWnd, &data);
+		if (auto fnSetWindowCompositionAttribute = GetSetWindowCompositionAttribute())
+			fnSetWindowCompositionAttribute(hWnd, &data);
 	}
 }
 
