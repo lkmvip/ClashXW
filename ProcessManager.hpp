@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <algorithm>
+
 #define OBJPREFIX LR"(Local\)"
 constexpr size_t guidSize = std::size(L"{00000000-0000-0000-0000-000000000000}"); // including the null terminator
 constexpr size_t prefixSize = std::size(OBJPREFIX) - 1;
@@ -49,6 +51,60 @@ namespace ProcessManager
 		wil::unique_process_information _subProcInfo, _clashProcInfo;
 		HWND _hWndConsole = nullptr;
 		wil::unique_handle _hEvent;
+
+		void _AppendSafePath(std::wstring& safePaths, const fs::path& path)
+		{
+			if (path.empty())
+				return;
+
+			auto native = path.native();
+			if (native.empty())
+				return;
+
+			if (!safePaths.empty())
+			{
+				std::wstring pattern = native;
+				pattern.push_back(L';');
+				if (safePaths == native ||
+					safePaths.rfind(pattern, 0) == 0 ||
+					safePaths.find(L';' + native + L';') != std::wstring::npos ||
+					(safePaths.size() > native.size() + 1 && safePaths.compare(safePaths.size() - native.size(), native.size(), native) == 0 && safePaths[safePaths.size() - native.size() - 1] == L';'))
+				{
+					return;
+				}
+				safePaths.push_back(L';');
+			}
+			safePaths.append(native);
+		}
+
+		bool _IsMihomoLikeCore() const
+		{
+			auto name = _exePath.filename().wstring();
+			std::transform(name.begin(), name.end(), name.begin(), ::towlower);
+
+			return name == L"mihomo.exe" ||
+				name == L"clash-meta.exe" ||
+				name == L"clash.meta.exe";
+		}
+
+		void _UpdateSafePathsEnv()
+		{
+			std::wstring safePaths;
+
+			DWORD required = GetEnvironmentVariableW(L"SAFE_PATHS", nullptr, 0);
+			if (required > 1)
+			{
+				safePaths.resize(required - 1);
+				GetEnvironmentVariableW(L"SAFE_PATHS", safePaths.data(), required);
+			}
+
+			_AppendSafePath(safePaths, _homeDir);
+			_AppendSafePath(safePaths, _configFile.parent_path());
+			_AppendSafePath(safePaths, _uiDir);
+			_AppendSafePath(safePaths, _exePath.parent_path());
+
+			SetEnvironmentVariableW(L"SAFE_PATHS", safePaths.empty() ? nullptr : safePaths.c_str());
+		}
 
 		void _UpdateClashCmd()
 		{
@@ -161,6 +217,11 @@ namespace ProcessManager
 
 			auto selfPath = GetModuleFsPath(g_hInst);
 			auto guidStr = objName + prefixSize;
+			if (_IsMihomoLikeCore())
+			{
+				_UpdateSafePathsEnv();
+			}
+
 			std::wstring cmd(LR"(")");
 			cmd.append(selfPath);
 			cmd.append(LR"(" --pm=)");
