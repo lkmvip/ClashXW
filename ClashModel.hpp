@@ -28,9 +28,14 @@ struct ClashProxy
 		Socks5,
 		Http,
 		Vmess,
+		Vless,
 		Snell,
 		Trojan,
 		Relay,
+		WireGuard,
+		Hysteria,
+		Hysteria2,
+		Tuic,
 	};
 
 	Name name;
@@ -43,7 +48,7 @@ struct ClashProxy
 		JSON_FROM(name);
 		JSON_FROM(type);
 		JSON_TRY_FROM(all);
-		JSON_FROM(history);
+		try { value.history = j.at("history").get<decltype(history)>(); } catch (...) {}
 		try { value.now.emplace(j.at("now").get<decltype(now)::value_type>()); } catch (...) {}
 	}
 };
@@ -51,19 +56,43 @@ struct ClashProxy
 NLOHMANN_JSON_SERIALIZE_ENUM(ClashProxy::Type, {
 	{ClashProxy::Type::Unknown, nullptr},
 	{ClashProxy::Type::URLTest, "URLTest"},
+	{ClashProxy::Type::URLTest, "url-test"},
 	{ClashProxy::Type::Fallback, "Fallback"},
+	{ClashProxy::Type::Fallback, "fallback"},
 	{ClashProxy::Type::LoadBalance, "LoadBalance"},
+	{ClashProxy::Type::LoadBalance, "load-balance"},
 	{ClashProxy::Type::Selector, "Selector"},
+	{ClashProxy::Type::Selector, "select"},
 	{ClashProxy::Type::Direct, "Direct"},
+	{ClashProxy::Type::Direct, "direct"},
 	{ClashProxy::Type::Reject, "Reject"},
+	{ClashProxy::Type::Reject, "reject"},
 	{ClashProxy::Type::Shadowsocks, "Shadowsocks"},
+	{ClashProxy::Type::Shadowsocks, "ss"},
 	{ClashProxy::Type::ShadowsocksR, "ShadowsocksR"},
+	{ClashProxy::Type::ShadowsocksR, "ssr"},
 	{ClashProxy::Type::Socks5, "Socks5"},
+	{ClashProxy::Type::Socks5, "socks5"},
 	{ClashProxy::Type::Http, "Http"},
+	{ClashProxy::Type::Http, "http"},
 	{ClashProxy::Type::Vmess, "Vmess"},
+	{ClashProxy::Type::Vmess, "vmess"},
+	{ClashProxy::Type::Vless, "Vless"},
+	{ClashProxy::Type::Vless, "vless"},
 	{ClashProxy::Type::Snell, "Snell"},
+	{ClashProxy::Type::Snell, "snell"},
 	{ClashProxy::Type::Trojan, "Trojan"},
+	{ClashProxy::Type::Trojan, "trojan"},
 	{ClashProxy::Type::Relay, "Relay"},
+	{ClashProxy::Type::Relay, "relay"},
+	{ClashProxy::Type::WireGuard, "WireGuard"},
+	{ClashProxy::Type::WireGuard, "wireguard"},
+	{ClashProxy::Type::Hysteria, "Hysteria"},
+	{ClashProxy::Type::Hysteria, "hysteria"},
+	{ClashProxy::Type::Hysteria2, "Hysteria2"},
+	{ClashProxy::Type::Hysteria2, "hysteria2"},
+	{ClashProxy::Type::Tuic, "Tuic"},
+	{ClashProxy::Type::Tuic, "tuic"},
 });
 
 struct ClashProxies

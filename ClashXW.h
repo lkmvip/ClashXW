@@ -69,7 +69,7 @@ constexpr auto CLASH_CONFIG_DIR_NAME = L"Config";
 constexpr auto CLASH_ASSETS_DIR_NAME = L"ClashAssets";
 constexpr auto CLASH_DASHBOARD_DIR_NAME = L"Dashboard";
 constexpr auto CLASH_DEF_CONFIG_NAME = L"config.yaml";
-constexpr auto CLASH_EXE_NAME = L"clash.exe";
+inline std::vector<std::wstring_view> CLASH_CORE_EXE_CANDIDATES = { L"mihomo.exe", L"clash-meta.exe", L"Clash.Meta.exe", L"clash.exe" };
 constexpr auto CLASH_CTL_ADDR = L"127.0.0.1:9090";
 constexpr auto CLASH_CTL_SECRET = L"";
 

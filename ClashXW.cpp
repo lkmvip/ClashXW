@@ -289,7 +289,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		LOG_LAST_ERROR_IF(WM_TASKBAR_CREATED == 0);
 
 		auto assetsDir = g_exePath / CLASH_ASSETS_DIR_NAME;
-		ProcessManager::SetArgs(assetsDir / CLASH_EXE_NAME, assetsDir, g_configPath / g_settings.configFile, assetsDir / CLASH_DASHBOARD_DIR_NAME, CLASH_CTL_ADDR, CLASH_CTL_SECRET);
+		auto coreExe = assetsDir / L"clash.exe"; // fallback for old packages
+		for (auto candidate : CLASH_CORE_EXE_CANDIDATES)
+		{
+			auto path = assetsDir / candidate;
+			if (fs::is_regular_file(path))
+			{
+				coreExe = std::move(path);
+				break;
+			}
+		}
+		ProcessManager::SetArgs(coreExe, assetsDir, g_configPath / g_settings.configFile, assetsDir / CLASH_DASHBOARD_DIR_NAME, CLASH_CTL_ADDR, CLASH_CTL_SECRET);
 		g_clashApi = std::make_unique<ClashApi>(L"127.0.0.1", static_cast<INTERNET_PORT>(9090));
 
 		SetupDataDirectory();
