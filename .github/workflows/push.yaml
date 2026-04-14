@@ -54,30 +54,21 @@ jobs:
     - uses: actions/upload-artifact@v4
       with:
         name: ClashXW64
-        path: x64/Release/ClashXW64.exe
-        if-no-files-found: error
-    - uses: actions/upload-artifact@v4
-      with:
-        name: ClashXW64
-        path: x64/Release/ClashXW64.pdb
-        if-no-files-found: error
-    - uses: actions/upload-artifact@v4
-      with:
-        name: ClashXW32
-        path: Release/ClashXW32.exe
+        path: |
+          x64/Release/ClashXW64.exe
+          x64/Release/ClashXW64.pdb
         if-no-files-found: error
     - uses: actions/upload-artifact@v4
       with:
         name: ClashXW32
-        path: Release/ClashXW32.pdb
+        path: |
+          Release/ClashXW32.exe
+          Release/ClashXW32.pdb
         if-no-files-found: error
     - uses: actions/upload-artifact@v4
       with:
         name: ClashXWARM64
-        path: ARM64/Release/ClashXWARM64.exe
-        if-no-files-found: error
-    - uses: actions/upload-artifact@v4
-      with:
-        name: ClashXWARM64
-        path: ARM64/Release/ClashXWARM64.pdb
+        path: |
+          ARM64/Release/ClashXWARM64.exe
+          ARM64/Release/ClashXWARM64.pdb
         if-no-files-found: error
