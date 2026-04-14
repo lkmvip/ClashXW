@@ -71,11 +71,11 @@ template <typename T, typename TExecutor>
 			{
 				decltype(auto) await_resume() const
 				{
-					if (m_self->m_reason)
-						std::rethrow_exception(m_self->m_reason);
+					if (this->m_self->m_reason)
+						std::rethrow_exception(this->m_self->m_reason);
 
-					assert(m_self->m_result.has_value());
-					return *(m_self->m_result);
+					assert(this->m_self->m_result.has_value());
+					return *(this->m_self->m_result);
 				}
 			};
 
@@ -88,11 +88,11 @@ template <typename T, typename TExecutor>
 			{
 				decltype(auto) await_resume() const
 				{
-					if (m_self->m_reason)
-						std::rethrow_exception(m_self->m_reason);
+					if (this->m_self->m_reason)
+						std::rethrow_exception(this->m_self->m_reason);
 
-					assert(m_self->m_result.has_value());
-					return *std::move(m_self->m_result);
+					assert(this->m_self->m_result.has_value());
+					return *std::move(this->m_self->m_result);
 				}
 			};
 
@@ -157,11 +157,11 @@ template <typename T, typename TExecutor>
 			{
 				decltype(auto) await_resume() const
 				{
-					if (m_self->m_reason)
-						std::rethrow_exception(m_self->m_reason);
+					if (this->m_self->m_reason)
+						std::rethrow_exception(this->m_self->m_reason);
 
-					assert(m_self->m_result.has_value());
-					return *(m_self->m_result);
+					assert(this->m_self->m_result.has_value());
+					return *(this->m_self->m_result);
 				}
 			};
 
@@ -174,11 +174,11 @@ template <typename T, typename TExecutor>
 			{
 				decltype(auto) await_resume() const
 				{
-					if (m_self->m_reason)
-						std::rethrow_exception(m_self->m_reason);
+					if (this->m_self->m_reason)
+						std::rethrow_exception(this->m_self->m_reason);
 
-					assert(m_self->m_result.has_value());
-					return *std::move(m_self->m_result);
+					assert(this->m_self->m_result.has_value());
+					return *std::move(this->m_self->m_result);
 				}
 			};
 
