@@ -77,7 +77,7 @@ namespace ProcessManager
 			safePaths.append(native);
 		}
 
-		bool _IsMihomoLikeCore() const
+		bool _IsMihomoLikeCore()
 		{
 			auto name = _exePath.filename().wstring();
 			std::transform(name.begin(), name.end(), name.begin(), ::towlower);
