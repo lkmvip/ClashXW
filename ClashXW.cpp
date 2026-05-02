@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (C) 2020 Richard Yu <yurichard3839@gmail.com>
  *
  * This file is part of ClashXW.
@@ -201,6 +201,11 @@ winrt::fire_and_forget StartClash()
 			{
 				g_clashVersion = g_clashApi->GetVersion();
 				g_clashConfig = g_clashApi->GetConfig();
+
+				g_clashOnline = true;
+
+				if (g_settings.systemProxy)
+					EnableSystemProxy(true);
 			}
 			catch (...)
 			{
@@ -208,17 +213,12 @@ winrt::fire_and_forget StartClash()
 				continue;
 			}
 
-			g_clashOnline = true;
-
-			if (g_settings.systemProxy)
-				EnableSystemProxy(true);
-
 			g_nid.hIcon = SelectNotifyIcon();
 			Shell_NotifyIconW(NIM_MODIFY, &g_nid);
 			co_return;
 		}
 		g_balloonClickAction = BalloonClickAction::ShowConsoleWindow;
-		ShowBalloon(_(L"Clash started, but failed to communiacte\nTap to view console log"), _(L"Error"), NIIF_ERROR);
+		ShowBalloon(_(L"Clash started, but failed to communicate\nTap to view console log"), _(L"Error"), NIIF_ERROR);
 	}
 	else
 	{
@@ -243,6 +243,17 @@ winrt::fire_and_forget UpdateConfigFile(fs::path name, bool showSuccess = false)
 				g_settings.configFile = name.native();
 				ProcessManager::SetConfigFile(config);
 			}
+		}
+
+		// After reloading or switching config, refresh the effective ports and
+		// rewrite Windows system proxy if it is enabled. This prevents Windows
+		// from keeping the old port when the new YAML uses a different port.
+		if (!errorDesp.has_value())
+		{
+			g_clashConfig = g_clashApi->GetConfig();
+
+			if (g_settings.systemProxy)
+				EnableSystemProxy(true);
 		}
 	}
 	catch (...)

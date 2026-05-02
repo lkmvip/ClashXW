@@ -37,7 +37,7 @@ msgstr "错误"
 
 #: ClashXW.cpp:188
 msgid ""
-"Clash started, but failed to communiacte\n"
+"Clash started, but failed to communicate\n"
 "Tap to view console log"
 msgstr ""
 "Clash 已启动，但无法通信\n"
