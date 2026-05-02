@@ -185,8 +185,13 @@ winrt::fire_and_forget StartClash()
 	if (ProcessManager::Start())
 	{
 		g_clashRunning = true;
+		g_clashOnline = false;
 		g_processMonitor = ProcessMonitor();
-		for (size_t i = 0; i < 5; ++i)
+
+		// Wait until Clash API is actually ready, then restore system proxy.
+		// This avoids showing the menu item as checked while Windows proxy was not set
+		// during slow auto-start on Windows 11.
+		for (size_t i = 0; i < 60; ++i)
 		{
 			if (!g_clashRunning)
 				co_return;
@@ -196,16 +201,20 @@ winrt::fire_and_forget StartClash()
 			{
 				g_clashVersion = g_clashApi->GetVersion();
 				g_clashConfig = g_clashApi->GetConfig();
-				EnableSystemProxy(g_settings.systemProxy);
-				g_nid.hIcon = SelectNotifyIcon();
-				Shell_NotifyIconW(NIM_MODIFY, &g_nid);
 			}
 			catch (...)
 			{
 				LOG_CAUGHT_EXCEPTION();
 				continue;
 			}
+
 			g_clashOnline = true;
+
+			if (g_settings.systemProxy)
+				EnableSystemProxy(true);
+
+			g_nid.hIcon = SelectNotifyIcon();
+			Shell_NotifyIconW(NIM_MODIFY, &g_nid);
 			co_return;
 		}
 		g_balloonClickAction = BalloonClickAction::ShowConsoleWindow;

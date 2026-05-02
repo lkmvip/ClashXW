@@ -208,21 +208,27 @@ namespace StartAtLogin
 
 void EnableSystemProxy(bool enable)
 {
-	auto port = g_clashConfig.port;
-	if (port == 0)
-	{
-		port = g_clashConfig.mixedPort;
-		if (port == 0)
-			enable = true;
-	}
+	const bool desired = enable;
 
 	if (enable)
 	{
+		auto port = g_clashConfig.mixedPort;
+		if (port == 0)
+			port = g_clashConfig.port;
+
+		// Clash config is not ready yet. Keep the user's desired setting,
+		// but do not write an invalid 127.0.0.1:0 system proxy.
+		if (port == 0)
+		{
+			g_settings.systemProxy = desired;
+			return;
+		}
+
 		wchar_t server[sizeof("255.255.255.255:65535")];
 		swprintf_s(server, L"127.0.0.1:%hu", port);
 		SetSystemProxy(server, g_settings.bypassRules.c_str());
 	}
 	else
 		SetSystemProxy(nullptr);
-	g_settings.systemProxy = enable;
+	g_settings.systemProxy = desired;
 }
