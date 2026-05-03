@@ -298,6 +298,35 @@ namespace MenuUtil
 			}
 		}
 
+		void RefreshProxyGroupsMenuChecks() noexcept
+		{
+			for (const auto& group : s_menuProxyGroups)
+			{
+				if (!group.hMenu || !group.model || group.allProxies.empty())
+					continue;
+
+				UINT selected = UINT_MAX;
+				for (size_t i = 0; i < group.allProxies.size(); ++i)
+				{
+					if (group.model->now && *group.model->now == group.allProxies[i]->name)
+					{
+						selected = static_cast<UINT>(i);
+						break;
+					}
+				}
+
+				if (selected != UINT_MAX)
+				{
+					CheckMenuRadioItem(group.hMenu, 0, static_cast<UINT>(group.allProxies.size() - 1), selected, MF_BYPOSITION);
+				}
+				else
+				{
+					for (size_t i = 0; i < group.allProxies.size(); ++i)
+						CheckMenuItem(group.hMenu, static_cast<UINT>(i), MF_BYPOSITION | MF_UNCHECKED);
+				}
+			}
+		}
+
 		void UpdateProxyGroupsMenu()
 		{
 			if (g_clashProxies.proxies.empty())
@@ -325,6 +354,10 @@ namespace MenuUtil
 				DeleteProxyGroupsMenu();
 				BuildMenuProxyGroups();
 				RebuildProxyGroupsMenu();
+			}
+			else
+			{
+				RefreshProxyGroupsMenuChecks();
 			}
 		}
 

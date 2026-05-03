@@ -559,19 +559,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case WM_CONTEXTMENU:
 			[](HWND hWnd, WPARAM wParam) -> winrt::fire_and_forget {
 				co_await winrt::resume_background();
-				[]() -> IAsyncAction {
-					co_await winrt::resume_background();
-					try
-					{
-						g_clashConfig = g_clashApi->GetConfig();
-						g_clashProxies = g_clashApi->GetProxies();
-					}
-					CATCH_LOG();
-#ifdef _DEBUG
-				}().wait_for(1000ms);
-#else
-				}().wait_for(200ms);
-#endif
+				try
+				{
+					// Refresh from the core before opening the tray menu so changes made
+					// in Yacd/metacubexd/other dashboards are reflected in check marks.
+					g_clashConfig = g_clashApi->GetConfig();
+					g_clashProxies = g_clashApi->GetProxies();
+				}
+				CATCH_LOG();
+
 				co_await ResumeForeground();
 				MenuUtil::UpdateMenus();
 				MenuUtil::ShowContextMenu(hWnd, GET_X_LPARAM(wParam), GET_Y_LPARAM(wParam));
