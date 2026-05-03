@@ -502,16 +502,34 @@ namespace MenuUtil
 		auto it = std::find_if(s_menuProxyGroups.begin(), s_menuProxyGroups.end(), [hMenu](const MenuProxyGroup& g) { return g.hMenu == hMenu; });
 		if (it != s_menuProxyGroups.end())
 		{
-			// FIXME: check if type is selector
 			MenuProxyGroup& group = *it;
 			if (i < group.allProxies.size())
 			{
-				[](HMENU hMenu, size_t i, MenuProxyGroup& group) -> winrt::fire_and_forget {
+				// Copy names before switching threads. The menu data may be rebuilt later,
+				// so do not keep references/pointers across the async API call.
+				auto groupName = group.model->name;
+				auto selectedName = group.allProxies[i]->name;
+				auto itemCount = group.allProxies.size();
+
+				[](HMENU hMenu, size_t i, size_t itemCount, std::string groupName, std::string selectedName) -> winrt::fire_and_forget {
 					co_await winrt::resume_background();
+					bool verified = false;
 					try
 					{
-						if (!g_clashApi->UpdateProxyGroup(group.model->name, group.allProxies[i]->name))
+						if (!g_clashApi->UpdateProxyGroup(groupName, selectedName))
 							co_return;
+
+						// Re-read mihomo/Clash state after switching. A local check mark alone
+						// can be misleading if the core accepts the request but does not change now.
+						g_clashProxies = g_clashApi->GetProxies();
+						if (auto groupIt = g_clashProxies.proxies.find(groupName); groupIt != g_clashProxies.proxies.end())
+							verified = groupIt->second.now && *groupIt->second.now == selectedName;
+
+						if (!verified)
+						{
+							OutputDebugStringA(("UpdateProxyGroup not verified, group=" + groupName + ", selected=" + selectedName + "\n").c_str());
+							co_return;
+						}
 					}
 					catch (...)
 					{
@@ -519,11 +537,10 @@ namespace MenuUtil
 						co_return;
 					}
 
-					group.model->now = group.allProxies[i]->name;
-
 					co_await ResumeForeground();
-					CheckMenuRadioItem(hMenu, 0, static_cast<UINT>(group.allProxies.size()), static_cast<UINT>(i), MF_BYPOSITION);
-				}(hMenu, i, group);
+					if (itemCount > 0)
+						CheckMenuRadioItem(hMenu, 0, static_cast<UINT>(itemCount - 1), static_cast<UINT>(i), MF_BYPOSITION);
+				}(hMenu, i, itemCount, std::move(groupName), std::move(selectedName));
 			}
 			return true;
 		}
