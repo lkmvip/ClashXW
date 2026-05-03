@@ -39,14 +39,17 @@ public:
 		{
 			Connect();
 
-			wil::unique_winhttp_hinternet hRequest(WinHttpOpenRequest(m_hConnect.get(), method, path, nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_ESCAPE_PERCENT));
+			// Paths containing proxy/group names are already percent-encoded by UrlEncode().
+			// Do not use WINHTTP_FLAG_ESCAPE_PERCENT here, otherwise %xx may be escaped again as %25xx.
+			wil::unique_winhttp_hinternet hRequest(WinHttpOpenRequest(m_hConnect.get(), method, path, nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, 0));
 			THROW_LAST_ERROR_IF_NULL(hRequest);
 
 			if (!parameters.is_null())
 			{
+				static constexpr wchar_t jsonHeaders[] = L"Content-Type: application/json\r\n";
 				auto data = parameters.dump(); // must remains valid until after WinHttpWriteData completes
 				const auto length = static_cast<DWORD>(data.size());
-				THROW_IF_WIN32_BOOL_FALSE(WinHttpSendRequest(hRequest.get(), WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, length, 0));
+				THROW_IF_WIN32_BOOL_FALSE(WinHttpSendRequest(hRequest.get(), jsonHeaders, static_cast<DWORD>(-1L), WINHTTP_NO_REQUEST_DATA, 0, length, 0));
 				DWORD written;
 				THROW_IF_WIN32_BOOL_FALSE(WinHttpWriteData(hRequest.get(), data.data(), length, &written));
 			}
@@ -106,7 +109,12 @@ public:
 	{
 		auto u8path = configPath.u8string();
 		std::string_view path(reinterpret_cast<const char*>(u8path.c_str()), u8path.size());
-		auto res = Request(L"/configs", L"PUT", { {"path", path} });
+		// mihomo recommends /configs?force=true when switching/reloading configs.
+		// Fall back to the old Clash-compatible /configs endpoint if the core rejects it.
+		auto res = Request(L"/configs?force=true", L"PUT", { {"path", path} });
+		if (res.statusCode != 204)
+			res = Request(L"/configs", L"PUT", { {"path", path} });
+
 		if (res.statusCode != 204)
 		{
 			std::wstring errorDesp = _(L"Error occoured, Please try to fix it by restarting ClashXW.");
@@ -141,11 +149,11 @@ public:
 	u16milliseconds GetProxyDelay(std::string_view proxyName)
 	{
 		std::wstring path = L"/proxies/";
-		path.append(Utf8ToUtf16(proxyName));
-		path.append(L"/delay"); // "/proxies/\(proxyName.encoded)/delay"
+		path.append(UrlEncode(proxyName));
+		path.append(L"/delay");
 
 		path.append(L"?timeout=5000&url=");
-		path.append(g_settings.benchmarkUrl);
+		path.append(UrlEncode(Utf16ToUtf8(g_settings.benchmarkUrl)));
 
 		auto res = Request(path.c_str());
 
@@ -166,12 +174,46 @@ public:
 	bool UpdateProxyGroup(std::string_view group, std::string_view selectProxy)
 	{
 		std::wstring path = L"/proxies/";
-		path.append(Utf8ToUtf16(group));
+		path.append(UrlEncode(group));
 		auto res = Request(path.c_str(), L"PUT", { {"name", selectProxy} });
-		return res.statusCode == 204; // HTTP 204 No Content
+		if (res.statusCode != 204)
+		{
+			OutputDebugStringA(("UpdateProxyGroup failed, status=" + std::to_string(res.statusCode) + ", body=" + res.data + "\n").c_str());
+			return false;
+		}
+		return true; // HTTP 204 No Content
 	}
 
 private:
+	static std::wstring UrlEncode(std::string_view value)
+	{
+		static constexpr char hex[] = "0123456789ABCDEF";
+		std::wstring encoded;
+		encoded.reserve(value.size() * 3);
+
+		for (unsigned char ch : value)
+		{
+			const bool unreserved =
+				(ch >= 'A' && ch <= 'Z') ||
+				(ch >= 'a' && ch <= 'z') ||
+				(ch >= '0' && ch <= '9') ||
+				ch == '-' || ch == '.' || ch == '_' || ch == '~';
+
+			if (unreserved)
+			{
+				encoded.push_back(static_cast<wchar_t>(ch));
+			}
+			else
+			{
+				encoded.push_back(L'%');
+				encoded.push_back(static_cast<wchar_t>(hex[ch >> 4]));
+				encoded.push_back(static_cast<wchar_t>(hex[ch & 0x0F]));
+			}
+		}
+
+		return encoded;
+	}
+
 	void Connect()
 	{
 		if (!m_hSession)

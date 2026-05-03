@@ -213,7 +213,14 @@ namespace MenuUtil
 			s_menuProxyGroups.clear();
 			s_menuProxies = std::move(g_clashProxies.proxies);
 
-			auto& global = s_menuProxies.at("GLOBAL");
+			auto globalIt = s_menuProxies.find("GLOBAL");
+			if (globalIt == s_menuProxies.end())
+			{
+				OutputDebugStringA("BuildMenuProxyGroups skipped: GLOBAL proxy group was not found.\n");
+				return;
+			}
+
+			auto& global = globalIt->second;
 			if (g_clashConfig.mode == ClashProxyMode::Global)
 			{
 				AddMenuProxyGroup(global);
@@ -225,7 +232,12 @@ namespace MenuUtil
 				{
 					if (unusedProxy.contains(key))
 						continue;
-					auto& proxy = s_menuProxies.at(key);
+
+					auto proxyIt = s_menuProxies.find(key);
+					if (proxyIt == s_menuProxies.end())
+						continue;
+
+					auto& proxy = proxyIt->second;
 					if (proxy.type == ClashProxy::Type::URLTest ||
 						proxy.type == ClashProxy::Type::Fallback ||
 						proxy.type == ClashProxy::Type::LoadBalance ||
